@@ -7,7 +7,7 @@ import tarfile
 from pathlib import Path
 
 # Configuration
-DIRS = ['RGB-VC1', 'IR-VC0']
+DIRS = ['RGB', 'IR']
 NB_REGS = 9
 WIDTH = 1600
 HEIGHT = 1300
