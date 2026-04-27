@@ -11,6 +11,9 @@ gain_hi = None
 gain_lo = None
 current_exposure_hi = None
 current_exposure_lo = None
+vc_id = None
+group_id = None
+strobe = None
 
 with open(raw_file, 'rb') as raw:
     for _ in range(nb_regs):
@@ -41,6 +44,13 @@ with open(raw_file, 'rb') as raw:
             gain_hi = val
         elif reg_addr == 0x3509:
             gain_lo = val
+        # Track VC ID, Group ID, and strobe
+        elif reg_addr == 0x4813:
+            vc_id = val
+        elif reg_addr == 0x321A:
+            group_id = val
+        elif reg_addr == 0x3920:
+            strobe = val
 
 # Print combined exposure and gain values
 if exposure_hi is not None and exposure_lo is not None:
@@ -54,3 +64,13 @@ if current_exposure_hi is not None and current_exposure_lo is not None:
 if gain_hi is not None and gain_lo is not None:
     gain = (gain_hi << 4) | (gain_lo >> 4)
     print('Gain: 0x{:04X} ({})'.format(gain, gain))
+
+if vc_id is not None:
+    print('VC ID: 0x{:02X} ({})'.format(vc_id, vc_id))
+
+if group_id is not None:
+    print('Group ID: 0x{:02X} ({})'.format(group_id, group_id))
+
+if strobe is not None:
+    strobe_state = 'on' if strobe == 0xFF else 'off'
+    print('Strobe: 0x{:02X} ({})'.format(strobe, strobe_state))
