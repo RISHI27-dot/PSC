@@ -7,7 +7,13 @@ import tarfile
 from pathlib import Path
 
 # Configuration
-DIRS = ['RGB', 'IR']
+SCRIPT_DIR        = Path(__file__).parent.resolve()
+FRAMES_DIR        = SCRIPT_DIR / 'frames'
+IR_DIR            = SCRIPT_DIR / 'IR'
+RGB_DIR           = SCRIPT_DIR / 'RGB'
+DIRS              = [IR_DIR, RGB_DIR]
+RAW2BMP_SCRIPT    = SCRIPT_DIR / 'raw2bmp.py'
+EXTRACT_SCRIPT    = SCRIPT_DIR / 'extract_embedded.py'
 NB_REGS = 9
 WIDTH = 1600
 HEIGHT = 1300
@@ -15,21 +21,18 @@ BPP = 16
 
 def extract_tar_files():
     """Extract tar.gz files in both directories"""
-    for directory in DIRS:
-        dir_path = Path(directory)
-
+    for dir_path in DIRS:
         if not dir_path.exists():
-            print(f"Warning: Directory {directory} does not exist")
+            print(f"Warning: Directory does not exist: {dir_path}")
             continue
 
-        # Find all .tar.gz files in the directory
         tar_files = list(dir_path.glob('*.tar.gz'))
 
         if not tar_files:
-            print(f"No .tar.gz files found in {directory}")
+            print(f"No .tar.gz files found in {dir_path}")
             continue
 
-        print(f"\nExtracting tar files in {directory}...")
+        print(f"\nExtracting tar files in {dir_path}...")
 
         for tar_file in tar_files:
             try:
@@ -42,65 +45,65 @@ def extract_tar_files():
                 continue
 
 def process_bin_files():
-    """Process all .bin files in both directories"""
-    for directory in DIRS:
-        dir_path = Path(directory)
+    """Process all .bin files from the frames directory into IR/ or RGB/"""
+    if not FRAMES_DIR.exists():
+        print(f"Error: frames directory does not exist: {FRAMES_DIR}")
+        return
 
-        if not dir_path.exists():
-            print(f"Warning: Directory {directory} does not exist")
+    bin_files = sorted(FRAMES_DIR.glob('*.bin'))
+
+    if not bin_files:
+        print(f"No .bin files found in {FRAMES_DIR}")
+        return
+
+    # Ensure output directories exist
+    IR_DIR.mkdir(exist_ok=True)
+    RGB_DIR.mkdir(exist_ok=True)
+
+    print(f"\nProcessing {len(bin_files)} files from {FRAMES_DIR}...")
+
+    for bin_file in bin_files:
+        base_name = bin_file.stem  # e.g. ir_000 or rgb_000
+
+        if base_name.startswith('ir_'):
+            out_dir = IR_DIR
+        elif base_name.startswith('rgb_'):
+            out_dir = RGB_DIR
+        else:
+            print(f"  ✗ Skipping unrecognised file: {bin_file.name}")
             continue
 
-        # Find all .bin files in the directory
-        bin_files = sorted(dir_path.glob('*.bin'))
+        bin_path = str(bin_file)
+        bmp_src = FRAMES_DIR / f"{base_name}.bmp"  # raw2bmp writes here
+        bmp_dst = out_dir / f"{base_name}.bmp"
+        txt_path = out_dir / f"{base_name}.txt"
 
-        if not bin_files:
-            print(f"No .bin files found in {directory}")
+        # Run raw2bmp.py (writes bmp next to the input file)
+        try:
+            subprocess.run(
+                ['python3', str(RAW2BMP_SCRIPT), bin_path, str(WIDTH), str(HEIGHT), str(BPP)],
+                check=True,
+                capture_output=True,
+                text=True
+            )
+            bmp_src.rename(bmp_dst)
+        except subprocess.CalledProcessError as e:
+            print(f"  ✗ BMP error for {bin_file.name}: {e.stderr}")
             continue
 
-        print(f"\nProcessing {len(bin_files)} files in {directory}...")
-
-        for bin_file in bin_files:
-            bin_path = str(bin_file)
-            base_name = bin_file.stem  # filename without extension
-
-            # Generate output file paths
-            bmp_path = bin_file.parent / f"{base_name}.bmp"
-            txt_path = bin_file.parent / f"{base_name}.txt"
-
-            # print(f"\nProcessing: {bin_path}")
-
-            # Run raw2bmp.py
-            try:
-                # print(f"  → Converting to BMP: {bmp_path}")
-                subprocess.run(
-                    ['python3', 'raw2bmp.py', bin_path, str(WIDTH), str(HEIGHT), str(BPP)],
-                    check=True,
-                    capture_output=True,
-                    text=True
-                )
-                # print(f"    ✓ BMP created: {bmp_path}")
-            except subprocess.CalledProcessError as e:
-                print(f"    ✗ Error converting to BMP: {e.stderr}")
-                continue
-
-            # Run extract_embedded.py and capture output to txt file
-            try:
-                # print(f"  → Extracting embedded data: {txt_path}")
-                result = subprocess.run(
-                    ['python3', 'extract_embedded.py', bin_path, str(NB_REGS)],
-                    check=True,
-                    capture_output=True,
-                    text=True
-                )
-
-                # Write output to txt file
-                with open(txt_path, 'w') as f:
-                    f.write(result.stdout)
-
-                # print(f"    ✓ Embedded data extracted: {txt_path}")
-            except subprocess.CalledProcessError as e:
-                print(f"    ✗ Error extracting embedded data: {e.stderr}")
-                continue
+        # Run extract_embedded.py and write stdout to txt file
+        try:
+            result = subprocess.run(
+                ['python3', str(EXTRACT_SCRIPT), bin_path, str(NB_REGS)],
+                check=True,
+                capture_output=True,
+                text=True
+            )
+            with open(txt_path, 'w') as f:
+                f.write(result.stdout)
+        except subprocess.CalledProcessError as e:
+            print(f"  ✗ Embedded data error for {bin_file.name}: {e.stderr}")
+            continue
 
 if __name__ == '__main__':
     #extract_tar_files()
