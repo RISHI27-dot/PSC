@@ -11,7 +11,8 @@ SCRIPT_DIR        = Path(__file__).parent.resolve()
 FRAMES_DIR        = SCRIPT_DIR / 'frames'
 IR_DIR            = SCRIPT_DIR / 'IR'
 RGB_DIR           = SCRIPT_DIR / 'RGB'
-DIRS              = [IR_DIR, RGB_DIR]
+MIX_DIR           = SCRIPT_DIR / 'MIX'
+DIRS              = [IR_DIR, RGB_DIR, MIX_DIR]
 RAW2BMP_SCRIPT    = SCRIPT_DIR / 'raw2bmp.py'
 EXTRACT_SCRIPT    = SCRIPT_DIR / 'extract_embedded.py'
 NB_REGS = 9
@@ -59,6 +60,7 @@ def process_bin_files():
     # Ensure output directories exist
     IR_DIR.mkdir(exist_ok=True)
     RGB_DIR.mkdir(exist_ok=True)
+    MIX_DIR.mkdir(exist_ok=True)
 
     print(f"\nProcessing {len(bin_files)} files from {FRAMES_DIR}...")
 
@@ -70,8 +72,7 @@ def process_bin_files():
         elif base_name.startswith('rgb_'):
             out_dir = RGB_DIR
         else:
-            print(f"  ✗ Skipping unrecognised file: {bin_file.name}")
-            continue
+            out_dir = MIX_DIR
 
         bin_path = str(bin_file)
         bmp_src = FRAMES_DIR / f"{base_name}.bmp"  # raw2bmp writes here
