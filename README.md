@@ -11,6 +11,8 @@ Capture RGB and IR frames from one `/dev/videoX` node at 60fps and capture embed
 | Kernel | https://github.com/RISHI27-dot/linux/commits/u/psc/ed_60fps/ |
 | yavta | https://github.com/RISHI27-dot/yavta/tree/psc/ed_60fps_share |
 
+Patches on top of `media/next`: [ov2312 ed and rgb+ir @60fps](https://gist.github.com/Rishikesh-D/a5d5e35be4114ce84fe7eb6ba2d17b79)
+
 ## Using the code
 
 ### 1. Connect hardware
