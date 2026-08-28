@@ -16,6 +16,12 @@ def parse_current_exposure(txt_path):
     m = re.search(r'Current Exposure:\s+0x[0-9A-Fa-f]+\s+\((\d+)\)', text)
     return int(m.group(1)) if m else None
 
+def parse_ir_led(txt_path):
+    """Return IR LED status string ('ON', 'OFF', or None) from a txt file."""
+    text = txt_path.read_text()
+    m = re.search(r'IR LED:\s+(ON|OFF)', text)
+    return m.group(1) if m else None
+
 def main():
     MIX_DIR.mkdir(exist_ok=True)
     RGB_DIR.mkdir(exist_ok=True)
@@ -26,8 +32,8 @@ def main():
         print(f"No ov2312-emb-frame-*.txt files found in {MIX_DIR}")
         return
 
-    print(f"{'TXT file':<35} {'Exposure':>10}  {'Class':<5}  BMP file")
-    print("-" * 80)
+    print(f"{'TXT file':<35} {'Exposure':>10}  {'IR LED':<6}  {'Class':<5}  BMP file")
+    print("-" * 90)
 
     for txt_path in txt_files:
         # Extract zero-padded index, e.g. "000007"
@@ -42,12 +48,13 @@ def main():
             print(f"  ? No Current Exposure in {txt_path.name}, skipping")
             continue
 
+        ir_led   = parse_ir_led(txt_path) or 'N/A'
         label    = 'RGB' if exposure > THRESHOLD else 'IR'
         dest_dir = RGB_DIR if label == 'RGB' else IR_DIR
 
         bmp_path = MIX_DIR / f"orgb_ir_60fsp-{idx}.bmp"
 
-        print(f"  {txt_path.name:<33} {exposure:>10}  {label:<5}  {bmp_path.name}")
+        print(f"  {txt_path.name:<33} {exposure:>10}  {ir_led:<6}  {label:<5}  {bmp_path.name}")
 
         # Copy txt
         shutil.copy2(str(txt_path), str(dest_dir / txt_path.name))
@@ -58,7 +65,7 @@ def main():
         else:
             print(f"    ! BMP not found: {bmp_path.name}")
 
-    print("-" * 80)
+    print("-" * 90)
     print(f"\nFiles copied to:")
     print(f"  RGB -> {RGB_DIR}")
     print(f"  IR  -> {IR_DIR}")

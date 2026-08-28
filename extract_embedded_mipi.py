@@ -56,6 +56,7 @@ gain_hi = None
 gain_lo = None
 current_exposure_hi = None
 current_exposure_lo = None
+ir_led = None
 
 with open(raw_file, 'rb') as f:
     raw = f.read(bytes_needed)
@@ -82,6 +83,8 @@ for i in range(nb_regs):
         gain_hi = val
     elif reg_addr == 0x3509:
         gain_lo = val
+    elif reg_addr == 0x3920:
+        ir_led = val
 
 if exposure_hi is not None and exposure_lo is not None:
     exposure = (exposure_hi << 8) | exposure_lo
@@ -94,3 +97,7 @@ if current_exposure_hi is not None and current_exposure_lo is not None:
 if gain_hi is not None and gain_lo is not None:
     gain = (gain_hi << 4) | (gain_lo >> 4)
     print('Gain: 0x{:04X} ({})'.format(gain, gain))
+
+if ir_led is not None:
+    ir_status = 'ON' if ir_led == 0xFF else 'OFF'
+    print('IR LED: {} (0x{:02X})'.format(ir_status, ir_led))
